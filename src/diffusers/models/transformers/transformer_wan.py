@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import math
+import time
 from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
@@ -104,7 +105,11 @@ class WanAttnProcessor:
                 freqs_cos: torch.Tensor,
                 freqs_sin: torch.Tensor,
             ):
+                start = time.time()
                 x1, x2 = hidden_states.unflatten(-1, (-1, 2)).unbind(-1)
+                end = time.time()
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BENCHMARK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                print(end - start)
                 cos = freqs_cos[..., 0::2]
                 sin = freqs_sin[..., 1::2]
                 out = torch.empty_like(hidden_states)
