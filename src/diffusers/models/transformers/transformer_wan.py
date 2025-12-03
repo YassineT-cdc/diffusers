@@ -106,7 +106,8 @@ class WanAttnProcessor:
                 freqs_sin: torch.Tensor,
             ):
                 start = time.time()
-                x1, x2 = hidden_states.unflatten(-1, (-1, 2)).unbind(-1)
+                x1 = hidden_states[..., 0::2]
+                x2 = hidden_states[..., 1::2]
                 end = time.time()
                 print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BENCHMARK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 print(end - start)
