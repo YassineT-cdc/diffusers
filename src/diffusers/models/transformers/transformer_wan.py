@@ -34,10 +34,6 @@ from ..normalization import FP32LayerNorm
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
-def _maybe_contiguous(x: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
-    if x is None:
-        return None
-    return x if x.is_contiguous() else x.contiguous()
 
 def _get_qkv_projections(attn: "WanAttention", hidden_states: torch.Tensor, encoder_hidden_states: torch.Tensor):
     # encoder_hidden_states is only passed for cross-attention
@@ -611,10 +607,6 @@ class WanTransformer3DModel(
         return_dict: bool = True,
         attention_kwargs: Optional[Dict[str, Any]] = None,
     ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
-        hidden_states = _maybe_contiguous(hidden_states)
-        encoder_hidden_states = _maybe_contiguous(encoder_hidden_states)
-        encoder_hidden_states_image = _maybe_contiguous(encoder_hidden_states_image)
-
         if attention_kwargs is not None:
             attention_kwargs = attention_kwargs.copy()
             lora_scale = attention_kwargs.pop("scale", 1.0)
@@ -639,7 +631,7 @@ class WanTransformer3DModel(
         rotary_emb = self.rope(hidden_states)
 
         hidden_states = self.patch_embedding(hidden_states)
-        hidden_states = hidden_states.flatten(2).transpose(1, 2).contiguous()
+        hidden_states = hidden_states.flatten(2).transpose(1, 2)
 
         # timestep shape: batch_size, or batch_size, seq_len (wan 2.2 ti2v)
         if timestep.ndim == 2:
@@ -660,7 +652,6 @@ class WanTransformer3DModel(
 
         if encoder_hidden_states_image is not None:
             encoder_hidden_states = torch.concat([encoder_hidden_states_image, encoder_hidden_states], dim=1)
-            encoder_hidden_states = encoder_hidden_states.contiguous()
 
         # 4. Transformer blocks
         if torch.is_grad_enabled() and self.gradient_checkpointing:
@@ -696,7 +687,7 @@ class WanTransformer3DModel(
             batch_size, post_patch_num_frames, post_patch_height, post_patch_width, p_t, p_h, p_w, -1
         )
         hidden_states = hidden_states.permute(0, 7, 1, 4, 2, 5, 3, 6)
-        output = hidden_states.flatten(6, 7).flatten(4, 5).flatten(2, 3)
+        output = hidden_states.flatten(6, 7).flatten(4, 5).flatten(2, 3).contiguous()
 
         if USE_PEFT_BACKEND:
             # remove `lora_scale` from each PEFT layer
