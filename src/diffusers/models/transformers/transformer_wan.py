@@ -607,7 +607,6 @@ class WanTransformer3DModel(
         return_dict: bool = True,
         attention_kwargs: Optional[Dict[str, Any]] = None,
     ) -> Union[torch.Tensor, Dict[str, torch.Tensor]]:
-        print("forward()")
         if attention_kwargs is not None:
             attention_kwargs = attention_kwargs.copy()
             lora_scale = attention_kwargs.pop("scale", 1.0)
@@ -631,10 +630,8 @@ class WanTransformer3DModel(
 
         rotary_emb = self.rope(hidden_states)
 
-        print("hidden_states = self.patch_embedding(hidden_states)")
         hidden_states = self.patch_embedding(hidden_states)
         hidden_states = hidden_states.flatten(2).transpose(1, 2)
-        print("hidden_states = hidden_states.flatten(2).transpose(1, 2)")
 
         # timestep shape: batch_size, or batch_size, seq_len (wan 2.2 ti2v)
         if timestep.ndim == 2:
@@ -646,7 +643,6 @@ class WanTransformer3DModel(
         temb, timestep_proj, encoder_hidden_states, encoder_hidden_states_image = self.condition_embedder(
             timestep, encoder_hidden_states, encoder_hidden_states_image, timestep_seq_len=ts_seq_len
         )
-        print("condition_embedder")
         if ts_seq_len is not None:
             # batch_size, seq_len, 6, inner_dim
             timestep_proj = timestep_proj.unflatten(2, (6, -1))
@@ -656,7 +652,6 @@ class WanTransformer3DModel(
 
         if encoder_hidden_states_image is not None:
             encoder_hidden_states = torch.concat([encoder_hidden_states_image, encoder_hidden_states], dim=1)
-        print("encoder_hidden_states = torch.concat([encoder_hidden_states_image, encoder_hidden_states], dim=1)")
 
         # 4. Transformer blocks
         if torch.is_grad_enabled() and self.gradient_checkpointing:
@@ -691,10 +686,8 @@ class WanTransformer3DModel(
         hidden_states = hidden_states.reshape(
             batch_size, post_patch_num_frames, post_patch_height, post_patch_width, p_t, p_h, p_w, -1
         )
-        print("hidden_states = hidden_states.permute(0, 7, 1, 4, 2, 5, 3, 6)")
         hidden_states = hidden_states.permute(0, 7, 1, 4, 2, 5, 3, 6)
         output = hidden_states.flatten(6, 7).flatten(4, 5).flatten(2, 3).contiguous()
-        print("output = hidden_states.flatten(6, 7).flatten(4, 5).flatten(2, 3).contiguous()")
 
         if USE_PEFT_BACKEND:
             # remove `lora_scale` from each PEFT layer
